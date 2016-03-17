@@ -20,47 +20,32 @@ public class Leader {
 	public static Integer maxCrashes;
 	public static List<HostPorts> peers;
 	public static int me;
-
-	void propose()
-	{
-		log.info("ready");
-	}
 	
-	
-	public static void main(String args[]) throws NumberFormatException, IOException
+	public static void main(String args[]) throws NumberFormatException, IOException, InterruptedException
 	{
-		System.out.println("Step #1 of project requirement.. \n");
+		System.out.println("Step #1 of project requirement..\n");
 		portNumber = null;
 		hostFile = null;
 		maxCrashes = null;
-		ParseResults parseResults = ArgumentParser.parse(args);
+		ParseResults parseResults = ArgumentParser.parse(args, 	Utility.maxNumReplicas);
 		portNumber = parseResults.portNumber;
 		hostFile = parseResults.hostFile;
 		maxCrashes = parseResults.maxCrashes;
-		Leader leader = new Leader();
-		String [][] hostPorts =Utility.readConfigFile();
 		peers = new ArrayList<HostPorts>();
-		String hostname = InetAddress.getLocalHost().getHostAddress();
-		Integer me = null;
-		for(int a=0; a< hostPorts.length ; a++)
+		int numProcs = 0;
+		String [][] hostPorts =Utility.readConfigFile(hostFile);
+		for(int a=0; a<hostPorts.length ; a++)
 		{	
-			HostPorts newHostPort = new HostPorts(Integer.parseInt(hostPorts[a][0]), hostPorts[a][1], Integer.parseInt(hostPorts[a][2]));
-			String match =  InetAddress.getByName(hostPorts[a][1]).getHostAddress();
-			if(hostPorts[a][1].toLowerCase().trim().equalsIgnoreCase("localhost"))
-				match =  InetAddress.getLocalHost().getHostAddress();
-			if(match.equalsIgnoreCase(hostname) &&  Integer.parseInt(hostPorts[a][2]) == portNumber)
-				me = new Integer(a);
+			numProcs++;
+			if(hostPorts[a][1] == null)
+				break;
+			HostPorts newHostPort = new HostPorts(Integer.parseInt(hostPorts[a][0]), hostPorts[a][1], portNumber);
+			System.out.println(newHostPort);
 			peers.add(newHostPort);
 		}
-		if(me == null)
-		{
-			System.out.println("Error: this process's address and port is not registered in peer group list located in configs.txt");
-			System.exit(-1);
-		}	
-		Utility.log= Logger.getLogger("Process #" + me);
-		log = Utility.log;
-		Utility.configureLogger();
-		leader.propose();
+		Utility.ArgumentParser.validateMaxCrashes(maxCrashes, numProcs);
+		log= Logger.getLogger("Leader");
+		Utility.configureLogger(log);
 		
 	}
 }
