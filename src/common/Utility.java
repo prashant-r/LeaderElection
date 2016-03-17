@@ -237,7 +237,7 @@ public class Utility {
 		tmp.append(System.getProperty("line.separator"));
 		for(HostPorts hostPort: hostPorts)
 		{
-			tmp.append("ssh " + hostPort.getHostName());
+			tmp.append("ssh -T" + hostPort.getHostName());
 			tmp.append(" <<" + "\'" + prepend + (counter) + "\'");
 			tmp.append(System.getProperty("line.separator"));
 			tmp.append("cd " + System.getProperty("user.dir"));

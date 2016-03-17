@@ -138,7 +138,6 @@ public class Process {
 		peers = new ArrayList<HostPorts>();
 		int numProcs = 0;
 		Path path = Paths.get(System.getProperty("user.dir"));
-		System.out.println("Loading configurations from -- " + path.getParent().getParent() + hostFile);
 		String [][] hostPorts =Utility.readConfigFile(path.getParent().getParent() + hostFile);
 		String hostname = InetAddress.getLocalHost().getHostAddress();
 		Integer me = null;
@@ -162,6 +161,6 @@ public class Process {
 		}	
 		log= Logger.getLogger("Process #" + me);
 		Utility.configureLogger(log);
-		System.out.println("Process #" + me + " looks good!");
+		System.out.println("Process #" + me + "started!");
 	}
 }
