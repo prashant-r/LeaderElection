@@ -48,8 +48,8 @@ public class Leader {
 		Utility.ArgumentParser.validateMaxCrashes(maxCrashes, numProcs);
 		log= Logger.getLogger("Leader");
 		Utility.configureLogger(log);
-		System.out.println("Run script kickstart.sh prepared in same directory :)  Execute sh kickstart.sh to begin program" + "\n");
 		Utility.createShellScript(peers,hostFile, maxCrashes);
+		System.out.println("Starting program on the several hosts in 5 seconds..");
 		
 	}
 }

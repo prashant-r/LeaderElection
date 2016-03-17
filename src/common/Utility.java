@@ -226,6 +226,15 @@ public class Utility {
 		StringBuilder tmp = new StringBuilder(); // Using default 16 character size
 		int counter = 0;
 		String prepend = "ENDSSH";
+		// count up timer for 5 seconds
+		tmp.append("for i in {1..5}; do ");
+		tmp.append(System.getProperty("line.separator"));
+		tmp.append("printf \'\r%2d\' $i");
+		tmp.append(System.getProperty("line.separator"));
+		tmp.append("sleep 1");
+		tmp.append(System.getProperty("line.separator"));
+		tmp.append("done");
+		tmp.append(System.getProperty("line.separator"));
 		for(HostPorts hostPort: hostPorts)
 		{
 			tmp.append("ssh " + hostPort.getHostName());
