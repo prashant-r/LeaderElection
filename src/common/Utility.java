@@ -224,9 +224,13 @@ public class Utility {
 	public static void createShellScript(List<HostPorts> hostPorts, String hostFile, Integer maxCrashes) throws IOException
 	{
 		StringBuilder tmp = new StringBuilder(); // Using default 16 character size
+		int counter = 0;
+		String prepend = "ENDSSH";
 		for(HostPorts hostPort: hostPorts)
 		{
 			tmp.append("ssh " + hostPort.getHostName());
+			tmp.append(System.getProperty("line.separator"));
+			tmp.append(" \'bash -s\' << " + "\"" + prepend + (counter++) + "\"");
 			tmp.append(System.getProperty("line.separator"));
 			tmp.append("cd " + System.getProperty("user.dir"));
 			tmp.append(System.getProperty("line.separator"));
@@ -234,6 +238,8 @@ public class Utility {
 			tmp.append(" -p " + hostPort.getPort() );
 			tmp.append(" -h " + hostFile);
 			tmp.append(" -f " + maxCrashes);
+			tmp.append(System.getProperty("line.separator"));
+			tmp.append(" " + "\"" + prepend + counter + "\"");
 			tmp.append(System.getProperty("line.separator"));
 		}
 		Utility.writeToFile(tmp);
