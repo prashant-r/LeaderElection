@@ -19,8 +19,7 @@ public class Leader {
 	public static Integer portNumber;
 	public static String hostFile;
 	public static Integer maxCrashes;
-	public static int me;
-	public static String dirAddress; 
+	public static int me; 
 	
 	public static void createShellScript(List<HostPorts> hostPorts)
 	{
@@ -29,7 +28,7 @@ public class Leader {
 		{
 			tmp.append("ssh " + hostPort.getHostName());
 			tmp.append(System.getProperty("line.separator"));
-			tmp.append("cd " + dirAddress);
+			tmp.append("cd " + System.getProperty("user.dir"));
 			tmp.append(System.getProperty("line.separator"));
 			tmp.append("java -jar Process.jar");
 			tmp.append(" -p " + hostPort.getPort() );
@@ -53,7 +52,6 @@ public class Leader {
 		List<HostPorts> peers = new ArrayList<HostPorts>();
 		int numProcs = 0;
 		Path path = Paths.get(System.getProperty("user.dir"));
-		dirAddress = path.getParent().getParent().toString();
 		System.out.println("Loading configurations from -- " + path.getParent().getParent() + hostFile);
 		
 		String [][] hostPorts =Utility.readConfigFile(path.getParent().getParent() + hostFile);
