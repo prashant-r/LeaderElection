@@ -13,7 +13,6 @@ import common.Utility.ParseResults;
 
 public class Leader {
 	
-	
 	public static Logger log;
 	public static Integer portNumber;
 	public static String hostFile;
@@ -27,12 +26,15 @@ public class Leader {
 		{
 			tmp.append("ssh " + hostPort.getHostName());
 			tmp.append(System.getProperty("line.separator"));
-			tmp.append("echo hello");
+			tmp.append("java -jar Process.jar");
+			tmp.append(" -p " + hostPort.getPort() );
+			tmp.append(" -h " + hostFile);
+			tmp.append(" -f " + maxCrashes);
+			tmp.append(System.getProperty("line.separator"));
 		}
 		System.out.println(tmp.toString());
 	}
-	
-	
+		
 	public static void main(String args[]) throws NumberFormatException, IOException, InterruptedException
 	{
 		System.out.println("Step #1 of project requirement..\n");
@@ -45,14 +47,14 @@ public class Leader {
 		maxCrashes = parseResults.maxCrashes;
 		List<HostPorts> peers = new ArrayList<HostPorts>();
 		int numProcs = 0;
-		String [][] hostPorts =Utility.readConfigFile(hostFile);
+		System.out.println("Loading configurations from -- " + System.getProperty("user.dir") + hostFile);
+		String [][] hostPorts =Utility.readConfigFile(System.getProperty("user.dir") + hostFile);
 		for(int a=0; a<hostPorts.length ; a++)
 		{	
 			numProcs++;
 			if(hostPorts[a][1] == null)
 				break;
 			HostPorts newHostPort = new HostPorts(Integer.parseInt(hostPorts[a][0]), hostPorts[a][1], portNumber);
-			System.out.println(newHostPort);
 			peers.add(newHostPort);
 		}
 		Utility.ArgumentParser.validateMaxCrashes(maxCrashes, numProcs);

@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -135,7 +137,9 @@ public class Process {
 		maxCrashes = parseResults.maxCrashes;
 		peers = new ArrayList<HostPorts>();
 		int numProcs = 0;
-		String [][] hostPorts =Utility.readConfigFile(hostFile);
+		Path path = Paths.get(System.getProperty("user.dir"));
+		System.out.println("Loading configurations from -- " + path.getParent().getParent() + hostFile);
+		String [][] hostPorts =Utility.readConfigFile(path.getParent().getParent() + hostFile);
 		String hostname = InetAddress.getLocalHost().getHostAddress();
 		Integer me = null;
 		for(int a=0; a<hostPorts.length ; a++)

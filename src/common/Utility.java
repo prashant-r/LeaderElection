@@ -7,9 +7,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
@@ -20,7 +23,6 @@ public class Utility {
 
 	public static final int maxNumReplicas = 10;
 	public static final int hostPortColumn = 2;
-	private static final String configsPath = System.getProperty("user.dir") + "/configs.txt";
 	private static final String logfilePath = System.getProperty("user.dir") + "/procs.log";
 	public static void configureLogger(Logger log)
 	{
@@ -51,7 +53,7 @@ public class Utility {
 	{		
 		String hostPorts [][] = new String[maxNumReplicas][hostPortColumn];
 		try {
-			java.io.BufferedReader fileReader = new BufferedReader(new FileReader(configsPath));			
+			java.io.BufferedReader fileReader = new BufferedReader(new FileReader(hostFile));					
 			int c = 0;
 			String readString = "";
 			while((readString = fileReader.readLine())!= null)
@@ -211,5 +213,11 @@ public class Utility {
 		}
 
 	}
+	
+//	public void writeToFile(StringBuilder sb)
+//	{
+//		FileUtils.writeStringToFile(file,sb.toString());
+//	}
+	
 	
 }
