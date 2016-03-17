@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.ConsoleAppender;
@@ -159,7 +160,7 @@ public class Utility {
 			}
 			    if(!validatePortNumber(portNumber))
 	        	{
-	        		System.out.println("No. of port must be [0,65535] | Your input was " + portNumber);
+	        		System.out.println("No. of port must be [1024,65535] | Your input was " + portNumber);
 	        		System.exit(-1);
 	        	}
 				if(!validateHostFile(hostFile))
@@ -210,6 +211,5 @@ public class Utility {
 		}
 
 	}
-		
 	
 }

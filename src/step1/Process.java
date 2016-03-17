@@ -141,7 +141,9 @@ public class Process {
 		for(int a=0; a<hostPorts.length ; a++)
 		{	
 			numProcs++;
-			HostPorts newHostPort = new HostPorts(Integer.parseInt(hostPorts[a][0]), hostPorts[a][1], Integer.parseInt(hostPorts[a][2]));
+			if(hostPorts[a][1] == null)
+				break;
+			HostPorts newHostPort = new HostPorts(Integer.parseInt(hostPorts[a][0]), hostPorts[a][1], portNumber);
 			String match =  InetAddress.getByName(hostPorts[a][1]).getHostAddress();
 			if(hostPorts[a][1].toLowerCase().trim().equalsIgnoreCase("localhost"))
 				match =  InetAddress.getLocalHost().getHostAddress();
@@ -154,7 +156,6 @@ public class Process {
 			System.out.println("Error: this process's address and port is not registered in peer group list located in configs.txt");
 			System.exit(-1);
 		}	
-		Utility.ArgumentParser.validateMaxCrashes(maxCrashes, numProcs);
 		log= Logger.getLogger("Process #" + me);
 		Utility.configureLogger(log);
 		System.out.println("Process #" + me + " looks good!");
