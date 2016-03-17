@@ -1,6 +1,8 @@
 package step1;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,6 +20,7 @@ public class Leader {
 	public static String hostFile;
 	public static Integer maxCrashes;
 	public static int me;
+	public static String dirAddress; 
 	
 	public static void createShellScript(List<HostPorts> hostPorts)
 	{
@@ -26,7 +29,7 @@ public class Leader {
 		{
 			tmp.append("ssh " + hostPort.getHostName());
 			tmp.append(System.getProperty("line.separator"));
-			tmp.append("cd " + System.getProperty("user.dir"));
+			tmp.append("cd " + dirAddress);
 			tmp.append(System.getProperty("line.separator"));
 			tmp.append("java -jar Process.jar");
 			tmp.append(" -p " + hostPort.getPort() );
@@ -49,8 +52,11 @@ public class Leader {
 		maxCrashes = parseResults.maxCrashes;
 		List<HostPorts> peers = new ArrayList<HostPorts>();
 		int numProcs = 0;
-		System.out.println("Loading configurations from -- " + System.getProperty("user.dir") + hostFile);
-		String [][] hostPorts =Utility.readConfigFile(System.getProperty("user.dir") + hostFile);
+		Path path = Paths.get(System.getProperty("user.dir"));
+		dirAddress = path.getParent().getParent().toString();
+		System.out.println("Loading configurations from -- " + path.getParent().getParent() + hostFile);
+		
+		String [][] hostPorts =Utility.readConfigFile(path.getParent().getParent() + hostFile);
 		for(int a=0; a<hostPorts.length ; a++)
 		{	
 			numProcs++;
