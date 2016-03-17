@@ -229,16 +229,16 @@ public class Utility {
 		// count up timer for 5 seconds
 		tmp.append("for i in {1..5}; do ");
 		tmp.append(System.getProperty("line.separator"));
-		tmp.append("printf \'\\r%2d\' $i");
+		tmp.append("	printf \'\\r%2d\' $i");
 		tmp.append(System.getProperty("line.separator"));
-		tmp.append("sleep 1");
+		tmp.append("	sleep 1");
 		tmp.append(System.getProperty("line.separator"));
 		tmp.append("done");
 		tmp.append(System.getProperty("line.separator"));
 		for(HostPorts hostPort: hostPorts)
 		{
 			tmp.append("ssh " + hostPort.getHostName());
-			tmp.append(" \'bash -s\' << " + "\'" + prepend + (counter) + "\'");
+			tmp.append(" " + "\'" + prepend + (counter) + "\'");
 			tmp.append(System.getProperty("line.separator"));
 			tmp.append("cd " + System.getProperty("user.dir"));
 			tmp.append(System.getProperty("line.separator"));
@@ -247,7 +247,7 @@ public class Utility {
 			tmp.append(" -h " + hostFile);
 			tmp.append(" -f " + maxCrashes);
 			tmp.append(System.getProperty("line.separator"));
-			tmp.append(" " + prepend + (counter++));
+			tmp.append(prepend + (counter++));
 			tmp.append(System.getProperty("line.separator"));
 		}
 		Utility.writeToFile(tmp);
