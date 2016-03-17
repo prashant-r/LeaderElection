@@ -23,7 +23,7 @@ public class Leader {
 		
 	public static void main(String args[]) throws NumberFormatException, IOException, InterruptedException
 	{
-		System.out.println("Step #1 of project requirement..\n");
+		System.out.println("Preparing to execute step #1 of project requirement..\n");
 		portNumber = null;
 		hostFile = null;
 		maxCrashes = null;
@@ -34,7 +34,7 @@ public class Leader {
 		List<HostPorts> peers = new ArrayList<HostPorts>();
 		int numProcs = 0;
 		Path path = Paths.get(System.getProperty("user.dir"));
-		System.out.println("Loading configurations from -- " + path.getParent().getParent() + hostFile);
+		System.out.println("Loading configurations from -- " + path.getParent().getParent() + hostFile + "\n");
 		
 		String [][] hostPorts =Utility.readConfigFile(path.getParent().getParent() + hostFile);
 		for(int a=0; a<hostPorts.length ; a++)
@@ -48,6 +48,7 @@ public class Leader {
 		Utility.ArgumentParser.validateMaxCrashes(maxCrashes, numProcs);
 		log= Logger.getLogger("Leader");
 		Utility.configureLogger(log);
+		System.out.println("Run script kickstart.sh prepared in same directory :)  Execute sh kickstart.sh to begin program" + "\n");
 		Utility.createShellScript(peers,hostFile, maxCrashes);
 		
 	}
