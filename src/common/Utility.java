@@ -24,6 +24,7 @@ public class Utility {
 	public static final int maxNumReplicas = 10;
 	public static final int hostPortColumn = 2;
 	private static final String logfilePath = System.getProperty("user.dir") + "/procs.log";
+	private static final String kickstartPath = System.getProperty("user.dir") + "/kickstart.sh";
 	public static void configureLogger(Logger log)
 	{
 		ConsoleAppender console = new ConsoleAppender(); //create appender
@@ -214,10 +215,27 @@ public class Utility {
 
 	}
 	
-//	public void writeToFile(StringBuilder sb)
-//	{
-//		FileUtils.writeStringToFile(file,sb.toString());
-//	}
+	public static void writeToFile(StringBuilder sb) throws IOException
+	{
+		
+		FileUtils.writeStringToFile(new File(kickstartPath),sb.toString());
+	}
 	
-	
+	public static void createShellScript(List<HostPorts> hostPorts, String hostFile, Integer maxCrashes) throws IOException
+	{
+		StringBuilder tmp = new StringBuilder(); // Using default 16 character size
+		for(HostPorts hostPort: hostPorts)
+		{
+			tmp.append("ssh " + hostPort.getHostName());
+			tmp.append(System.getProperty("line.separator"));
+			tmp.append("cd " + System.getProperty("user.dir"));
+			tmp.append(System.getProperty("line.separator"));
+			tmp.append("java -jar Process.jar");
+			tmp.append(" -p " + hostPort.getPort() );
+			tmp.append(" -h " + hostFile);
+			tmp.append(" -f " + maxCrashes);
+			tmp.append(System.getProperty("line.separator"));
+		}
+		Utility.writeToFile(tmp);
+	}
 }

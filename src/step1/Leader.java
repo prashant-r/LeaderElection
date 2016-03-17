@@ -20,24 +20,6 @@ public class Leader {
 	public static String hostFile;
 	public static Integer maxCrashes;
 	public static int me; 
-	
-	public static void createShellScript(List<HostPorts> hostPorts)
-	{
-		StringBuilder tmp = new StringBuilder(); // Using default 16 character size
-		for(HostPorts hostPort: hostPorts)
-		{
-			tmp.append("ssh " + hostPort.getHostName());
-			tmp.append(System.getProperty("line.separator"));
-			tmp.append("cd " + System.getProperty("user.dir"));
-			tmp.append(System.getProperty("line.separator"));
-			tmp.append("java -jar Process.jar");
-			tmp.append(" -p " + hostPort.getPort() );
-			tmp.append(" -h " + hostFile);
-			tmp.append(" -f " + maxCrashes);
-			tmp.append(System.getProperty("line.separator"));
-		}
-		System.out.println(tmp.toString());
-	}
 		
 	public static void main(String args[]) throws NumberFormatException, IOException, InterruptedException
 	{
@@ -66,7 +48,7 @@ public class Leader {
 		Utility.ArgumentParser.validateMaxCrashes(maxCrashes, numProcs);
 		log= Logger.getLogger("Leader");
 		Utility.configureLogger(log);
-		createShellScript(peers);
+		Utility.createShellScript(peers,hostFile, maxCrashes);
 		
 	}
 }
