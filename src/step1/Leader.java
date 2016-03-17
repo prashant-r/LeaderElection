@@ -49,7 +49,8 @@ public class Leader {
 		log= Logger.getLogger("Leader");
 		Utility.configureLogger(log);
 		Utility.createShellScript(peers,hostFile, maxCrashes);
-		System.out.println("Starting program on the several hosts in 5 seconds..");
+		System.out.println("Starting program on the several hosts.. \n");
 		Utility.kickstart();
+		System.out.println("Step 1 terminated. check deliverables/step1/proclogs for more info.");
 	}
 }
