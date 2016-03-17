@@ -24,7 +24,8 @@ public class Utility {
 	public static final int maxNumReplicas = 10;
 	public static final int hostPortColumn = 2;
 	private static final String logfilePath = System.getProperty("user.dir") + "/procs.log";
-	private static final String kickstartPath = System.getProperty("user.dir") + "/kickstart.sh";
+	private static final String kickstartDirPath = System.getProperty("user.dir");
+	private static final String kickstartFilePath = System.getProperty("user.dir") + "/kickstart.sh";
 	public static void configureLogger(Logger log)
 	{
 		ConsoleAppender console = new ConsoleAppender(); //create appender
@@ -218,7 +219,7 @@ public class Utility {
 	public static void writeToFile(StringBuilder sb) throws IOException
 	{
 		
-		FileUtils.writeStringToFile(new File(kickstartPath),sb.toString());
+		FileUtils.writeStringToFile(new File(kickstartFilePath),sb.toString());
 	}
 	
 	public static void createShellScript(List<HostPorts> hostPorts, String hostFile, Integer maxCrashes) throws IOException
@@ -256,7 +257,7 @@ public class Utility {
 	public static void kickstart() throws IOException, InterruptedException
 	{
 		ProcessBuilder pb = new ProcessBuilder("./kickstart.sh");
-		pb.directory(new File(kickstartPath));
+		pb.directory(new File(kickstartDirPath));
 		Process p = pb.start();
 		p.waitFor();
 	}
