@@ -50,6 +50,6 @@ public class Leader {
 		Utility.configureLogger(log);
 		Utility.createShellScript(peers,hostFile, maxCrashes);
 		System.out.println("Starting program on the several hosts in 5 seconds..");
-		
+		Utility.kickstart();
 	}
 }

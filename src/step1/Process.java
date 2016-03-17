@@ -161,6 +161,6 @@ public class Process {
 		}	
 		log= Logger.getLogger("Process #" + me);
 		Utility.configureLogger(log);
-		System.out.println("Process #" + me + "started!");
+		System.out.println("Process #" + me + " started!");
 	}
 }
