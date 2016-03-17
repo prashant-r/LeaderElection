@@ -147,7 +147,7 @@ public class Process {
 			String match =  InetAddress.getByName(hostPorts[a][1]).getHostAddress();
 			if(hostPorts[a][1].toLowerCase().trim().equalsIgnoreCase("localhost"))
 				match =  InetAddress.getLocalHost().getHostAddress();
-			if(match.equalsIgnoreCase(hostname) &&  Integer.parseInt(hostPorts[a][2]) == portNumber)
+			if(match.equalsIgnoreCase(hostname))
 				me = new Integer(a);
 			peers.add(newHostPort);
 		}
