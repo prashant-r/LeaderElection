@@ -238,7 +238,7 @@ public class Utility {
 		for(HostPorts hostPort: hostPorts)
 		{
 			tmp.append("ssh " + hostPort.getHostName());
-			tmp.append(" \'bash -s\' << " + "\"" + prepend + (counter) + "\"");
+			tmp.append(" \'bash -s\' << " + "\'" + prepend + (counter) + "\'");
 			tmp.append(System.getProperty("line.separator"));
 			tmp.append("cd " + System.getProperty("user.dir"));
 			tmp.append(System.getProperty("line.separator"));
@@ -247,7 +247,7 @@ public class Utility {
 			tmp.append(" -h " + hostFile);
 			tmp.append(" -f " + maxCrashes);
 			tmp.append(System.getProperty("line.separator"));
-			tmp.append(" " + "\"" + prepend + (counter++) + "\"");
+			tmp.append(" " + prepend + (counter++));
 			tmp.append(System.getProperty("line.separator"));
 		}
 		Utility.writeToFile(tmp);
