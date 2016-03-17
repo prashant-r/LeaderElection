@@ -26,6 +26,8 @@ public class Leader {
 		{
 			tmp.append("ssh " + hostPort.getHostName());
 			tmp.append(System.getProperty("line.separator"));
+			tmp.append("cd " + System.getProperty("user.dir"));
+			tmp.append(System.getProperty("line.separator"));
 			tmp.append("java -jar Process.jar");
 			tmp.append(" -p " + hostPort.getPort() );
 			tmp.append(" -h " + hostFile);
