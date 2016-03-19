@@ -1,4 +1,4 @@
-package step1;
+package step2;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

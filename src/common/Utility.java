@@ -5,12 +5,29 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.Serializable;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.FileHandler;
+import java.util.logging.Handler;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 public class Utility {
 
 	public static final int maxNumReplicas = 10;
 	public static final int hostPortColumn = 2;
-	
+	private static final String kickstartFilePath = System.getProperty("user.dir") + "/kickstart.sh";
+	private static final String killAllFilePath = System.getProperty("user.dir") + "/killall.sh";
+	private static final String kickstartDirPath = System.getProperty("user.dir");
+	private static final String logfilePath = System.getProperty("user.dir") + "/log/procs";
+	public static FileHandler fh;
 	public static String[][] readConfigFile(String hostFile)
 	{		
 		String hostPorts [][] = new String[maxNumReplicas][hostPortColumn];
@@ -175,5 +192,134 @@ public class Utility {
 		}
 
 	}
+	public static void createKillShellScript(List<HostPorts> hostPorts) throws IOException
+	{
+		StringBuilder tmp = new StringBuilder(); // Using default 16 character size
+		int counter = 0;
+		String prepend = "ENDSSH";
+		for(HostPorts hostPort: hostPorts)
+		{
+			tmp.append("ssh -T " + hostPort.getHostName());
+			tmp.append(" <<" + "\'" + prepend + (counter) + "\' &");
+			tmp.append(System.getProperty("line.separator"));
+			tmp.append("jps -l | grep Process.jar | awk \'{print $1}\' | xargs kill -9");
+			tmp.append(System.getProperty("line.separator"));
+			tmp.append(prepend + (counter++));
+			tmp.append(System.getProperty("line.separator"));
+		}
+		writeToFile(tmp,killAllFilePath);
+	}
+	public static void createStartShellScript(List<HostPorts> hostPorts, String hostFile, Integer maxCrashes) throws IOException
+	{
+		StringBuilder tmp = new StringBuilder(); // Using default 16 character size
+		int counter = 0;
+		String prepend = "ENDSSH";
+		for(HostPorts hostPort: hostPorts)
+		{
+			tmp.append("ssh -T " + hostPort.getHostName());
+			tmp.append(" <<" + "\'" + prepend + (counter) + "\' &");
+			tmp.append(System.getProperty("line.separator"));
+			tmp.append("cd " + System.getProperty("user.dir"));
+			tmp.append(System.getProperty("line.separator"));
+			tmp.append("java -jar Process.jar ");
+			tmp.append(" -p " + hostPort.getPort() );
+			tmp.append(" -h " + hostFile);
+			tmp.append(" -f " + maxCrashes);
+			tmp.append(System.getProperty("line.separator"));
+			tmp.append(prepend + (counter++));
+			tmp.append(System.getProperty("line.separator"));
+		}
+		writeToFile(tmp, kickstartFilePath);
+	}
+	public static void writeToFile(StringBuilder tmp, String filePath) throws IOException
+	{
+		byte data[] = tmp.toString().getBytes();
+		Path file = Paths.get(filePath);
+		Set<PosixFilePermission> perms = new HashSet<PosixFilePermission>();
+		//add owners permission
+		perms.add(PosixFilePermission.OWNER_READ);
+		perms.add(PosixFilePermission.OWNER_WRITE);
+		perms.add(PosixFilePermission.OWNER_EXECUTE);
+		//add group permissions
+		perms.add(PosixFilePermission.GROUP_READ);
+		perms.add(PosixFilePermission.GROUP_WRITE);
+		perms.add(PosixFilePermission.GROUP_EXECUTE);
+		//add others permissions
+		perms.add(PosixFilePermission.OTHERS_READ);
+		perms.add(PosixFilePermission.OTHERS_WRITE);
+		perms.add(PosixFilePermission.OTHERS_EXECUTE);
+		Files.write(file, data);
+		Files.setPosixFilePermissions(file, perms);
+	}
 
+	public static void kickstart() throws IOException, InterruptedException
+	{
+		ProcessBuilder pb = new ProcessBuilder("./kickstart.sh");
+		pb.directory(new File(kickstartDirPath));
+		java.lang.Process p = pb.start();
+		p.waitFor();
+	}
+
+	public static void killAll() throws IOException, InterruptedException
+	{
+		ProcessBuilder pb = new ProcessBuilder("./killall.sh");
+		pb.directory(new File(kickstartDirPath));
+		java.lang.Process p = pb.start();
+		p.waitFor(5, TimeUnit.SECONDS);
+	}
+
+	public static void loadingBar(int time) throws IOException, InterruptedException
+	{
+		String anim= "|/-\\";
+		for (int x =0 ; x < 100 ; x++){
+			String data = "\r" + anim.charAt(x % anim.length())  + " " + x + "%";
+			System.out.write(data.getBytes());
+			Thread.sleep(time);
+		}
+	}
+	
+	public static void configureLogger(Logger log, int clientId)
+	{
+
+    try {  
+
+        // This block configure the logger with handler and formatter  
+    	fh = new FileHandler(logfilePath + clientId +".log",false);  
+        Logger globalLogger = Logger.getLogger("global");
+        Handler[] handlers = globalLogger.getHandlers();
+        for(Handler handler : handlers) {
+            globalLogger.removeHandler(handler);
+        }
+        log.setUseParentHandlers(false);
+        log.addHandler(fh);
+        System.setProperty("java.util.logging.SimpleFormatter.format", 
+                "%1$tF %1$tT %4$s %2$s %5$s%6$s%n");
+        SimpleFormatter formatter = new SimpleFormatter();  
+        fh.setFormatter(formatter);  
+    } catch (SecurityException e) {  
+        log.info(e.getMessage());  
+    } catch (IOException e) {  
+        log.info(e.getMessage());
+    }  
+    
+	}
+	
+	public static class ClientPropose implements Serializable
+	{
+		private static final long serialVersionUID = 1L;
+		public ClientPropose(int data)
+		{
+			this.data = data;
+		}
+		public int data;
+	}
+	public static class ClientReply implements Serializable
+	{
+		private static final long serialVersionUID = 1L;
+		public ClientReply(int data)
+		{
+			this.data = data;
+		}
+		public int data;
+	}
 }
