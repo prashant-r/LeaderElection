@@ -1,22 +1,22 @@
-Mar 19, 2016 5:20:56 AM step1.Process main
+Mar 19, 2016 6:43:19 AM step1.Process main
 INFO: Process #6 started!
-Mar 19, 2016 5:20:56 AM step1.Process propose
+Mar 19, 2016 6:43:19 AM step1.Process propose
 INFO: me 6value to send to 1
-Mar 19, 2016 5:20:56 AM step1.Process propose
+Mar 19, 2016 6:43:19 AM step1.Process propose
 INFO: me 6value to send to 2
-Mar 19, 2016 5:20:56 AM step1.Process propose
+Mar 19, 2016 6:43:19 AM step1.Process propose
 INFO: me 6value to send to 3
-Mar 19, 2016 5:20:56 AM step1.Process propose
+Mar 19, 2016 6:43:19 AM step1.Process propose
 INFO: me 6value to send to 4
-Mar 19, 2016 5:20:56 AM step1.Process propose
+Mar 19, 2016 6:43:19 AM step1.Process propose
 INFO: me 6value to send to 5
-Mar 19, 2016 5:20:56 AM step1.Process propose
+Mar 19, 2016 6:43:19 AM step1.Process propose
 INFO: me 6value to send to 7
-Mar 19, 2016 5:20:56 AM step1.Process propose
+Mar 19, 2016 6:43:19 AM step1.Process propose
 INFO: me 6value to send to 8
-Mar 19, 2016 5:20:56 AM step1.Process propose
+Mar 19, 2016 6:43:19 AM step1.Process propose
 INFO: me 6value to send to 9
-Mar 19, 2016 5:20:56 AM step1.Process propose
+Mar 19, 2016 6:43:19 AM step1.Process propose
 INFO: me 6value to send to 10
-Mar 19, 2016 5:20:56 AM step1.Process propose
+Mar 19, 2016 6:43:20 AM step1.Process propose
 INFO:  Setting decided to 10 chosen from max of set: [1, 2, 3, 4, 5, 7, 8, 9, 10] U 6

@@ -59,41 +59,16 @@ public class Leader {
 			peers.add(newHostPort);
 		}
 		Utility.ArgumentParser.validateMaxCrashes(maxCrashes, numProcs);
-		log= Logger.getLogger("Leader");
-		configureLogger(log);
 		createStartShellScript(peers,hostFile, maxCrashes);
 		createKillShellScript(peers);
 		System.out.println("Killing existing programs on the multiple hosts.. \n");
-		//killAll();
-		System.out.println("Starting program on the multiple hosts.. \n");
+		killAll();
+		loadingBar(100);
+		System.out.println("\nStarting program on the multiple hosts.. \n");
+		loadingBar(1050);
 		kickstart();
-		System.out.println("\n All processes are awake. Check deliverables/step1/proclogs for more info.");
+		System.out.println("\nAll processes are awake. Check deliverables/step1/proclogs for more info.");
 	}
-	public static void configureLogger(Logger log)
-	{
-		ConsoleAppender console = new ConsoleAppender(); //create appender
-		//configure the appender
-		String PATTERN = "%d [%p|%c|%C{1}] %m%n";
-		console.setLayout(new PatternLayout(PATTERN)); 
-		console.setThreshold(Level.ALL);
-		console.activateOptions();
-		//add appender to any Logger (here is root)
-		log.addAppender(console);
-
-		FileAppender fa = new FileAppender();
-		fa.setName("FileLogger");
-		fa.setFile(logfilePath + me +".log");
-		fa.setLayout(new PatternLayout("%d %-5p [%c{1}] %m%n"));
-		fa.setThreshold(Level.ALL);
-		fa.setAppend(true);
-		fa.activateOptions();
-
-		//add appender to any Logger (here is root)
-		log.addAppender(fa);
-		//repeat with all other desired appenders
-		log.setAdditivity(false);
-	}
-
 	public static void createKillShellScript(List<HostPorts> hostPorts) throws IOException
 	{
 		StringBuilder tmp = new StringBuilder(); // Using default 16 character size
@@ -104,7 +79,7 @@ public class Leader {
 			tmp.append("ssh -T " + hostPort.getHostName());
 			tmp.append(" <<" + "\'" + prepend + (counter) + "\' &");
 			tmp.append(System.getProperty("line.separator"));
-			tmp.append("jps | grep jar | awk \'{print $1}\' | xargs kill -9");
+			tmp.append("jps -l | grep Process.jar | awk \'{print $1}\' | xargs kill -9");
 			tmp.append(System.getProperty("line.separator"));
 			tmp.append(prepend + (counter++));
 			tmp.append(System.getProperty("line.separator"));
@@ -123,7 +98,7 @@ public class Leader {
 			tmp.append(System.getProperty("line.separator"));
 			tmp.append("cd " + System.getProperty("user.dir"));
 			tmp.append(System.getProperty("line.separator"));
-			tmp.append("java -jar Process.jar");
+			tmp.append("java -jar Process.jar -Duniquename=cs505ex6step1 ");
 			tmp.append(" -p " + hostPort.getPort() );
 			tmp.append(" -h " + hostFile);
 			tmp.append(" -f " + maxCrashes);
@@ -159,7 +134,7 @@ public class Leader {
 		ProcessBuilder pb = new ProcessBuilder("./kickstart.sh");
 		pb.directory(new File(kickstartDirPath));
 		java.lang.Process p = pb.start();
-		p.waitFor(15, TimeUnit.SECONDS);
+		p.waitFor();
 	}
 
 	public static void killAll() throws IOException, InterruptedException
@@ -167,16 +142,16 @@ public class Leader {
 		ProcessBuilder pb = new ProcessBuilder("./killall.sh");
 		pb.directory(new File(kickstartDirPath));
 		java.lang.Process p = pb.start();
-		p.waitFor();
+		p.waitFor(5, TimeUnit.SECONDS);
 	}
 
-	public static void loadingBar() throws IOException, InterruptedException
+	public static void loadingBar(int time) throws IOException, InterruptedException
 	{
 		String anim= "|/-\\";
 		for (int x =0 ; x < 100 ; x++){
 			String data = "\r" + anim.charAt(x % anim.length())  + " " + x + "%";
 			System.out.write(data.getBytes());
-			Thread.sleep(100);
+			Thread.sleep(time);
 		}
 	}
 }

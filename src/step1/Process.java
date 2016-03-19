@@ -44,13 +44,12 @@ public class Process {
 	public static Integer me;
 	private static final String logfilePath = System.getProperty("user.dir") + "/log/procs";
 	public static Integer proposal;
+	public static FileHandler fh;
 	public enum Status{
 		REC, TIMEOUT, UNTRIED
 	}	
 	public static void configureLogger(Logger log)
 	{
-
-	FileHandler fh;  
 
     try {  
 
@@ -203,7 +202,7 @@ public class Process {
 			oo.close();
 			byte[] sendingBytes = bStream.toByteArray();
 			DatagramPacket sendPacket = new DatagramPacket(sendingBytes, sendingBytes.length, InetAddress.getByName(hostname),port);
-			socket.setSoTimeout(5000);
+			socket.setSoTimeout(300);
 			socket.connect(InetAddress.getByName(hostname), port);
 			socket.send(sendPacket);
 		}
@@ -237,6 +236,7 @@ public class Process {
 
 		decided = Math.max(value, max);
 		log.info(" Setting decided to " + decided + " chosen from max of set: " + S + " U " + value);
+		fh.close();
 		return decided;
 	}
 	
