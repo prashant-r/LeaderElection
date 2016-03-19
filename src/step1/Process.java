@@ -1,16 +1,31 @@
 package step1;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutput;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-
-import org.apache.log4j.Logger;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.FileHandler;
+import java.util.logging.Handler;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 import common.Utility;
 import common.Utility.ArgumentParser;
@@ -23,111 +38,237 @@ public class Process {
 	public static String hostFile;
 	public static Integer maxCrashes;
 	public static List<HostPorts> peers;
-	
-	Process(int hostIndex)
+	public static Set<Integer> S = Collections.newSetFromMap(new ConcurrentHashMap<Integer, Boolean>());
+	public static volatile Integer decided;
+	public static ConcurrentHashMap<Integer, Status> recStatus;
+	public static Integer me;
+	private static final String logfilePath = System.getProperty("user.dir") + "/log/procs";
+	public static Integer proposal;
+	public enum Status{
+		REC, TIMEOUT, UNTRIED
+	}	
+	public static void configureLogger(Logger log)
 	{
-		
-		
-	}
+
+	FileHandler fh;  
+
+    try {  
+
+        // This block configure the logger with handler and formatter  
+    	fh = new FileHandler(logfilePath + me +".log",false);  
+        Logger globalLogger = Logger.getLogger("global");
+        Handler[] handlers = globalLogger.getHandlers();
+        for(Handler handler : handlers) {
+            globalLogger.removeHandler(handler);
+        }
+        log.setUseParentHandlers(false);
+        log.addHandler(fh);
+        System.setProperty("java.util.logging.SimpleFormatter.format", 
+                "%1$tF %1$tT %4$s %2$s %5$s%6$s%n");
+        SimpleFormatter formatter = new SimpleFormatter();  
+        fh.setFormatter(formatter);  
+    } catch (SecurityException e) {  
+        log.info(e.getMessage());  
+    } catch (IOException e) {  
+        log.info(e.getMessage());
+    }  
+}
 	
-	void receive(int port)
+	public static class Server implements Runnable
+	{
+	private static void receive(int port)
 	{
 		DatagramSocket socket; 
 		try{
 			socket = new DatagramSocket(port);
 			byte[] recData = new byte[1024];
-			byte[] sendData = new byte[1024];
 			while(true)
-			{
+			{			
 				try{
 					DatagramPacket recPacket = new DatagramPacket(recData,recData.length);
 					socket.receive(recPacket);
-					String receivedString = new String(recPacket.getData());
-					// Reset the byte array - very important
+					new Thread(new PacketExecutor(recPacket.getAddress(),Arrays.copyOf(recData, recData.length) )).start();
 					Arrays.fill(recData, (byte) 0 );
-					log.info("Received from client - "+ recPacket.getAddress()+ ":"+ recPacket.getPort()+ "-->" + receivedString);
-					String [] recString = receivedString.split(" ");
-					String response = "";
-					// Validating the input string
-					if(!(validateString(receivedString) && recString.length>=2))
-						response = "400 BAD REQUEST";
-					else{	
-						response = "ACK";
-					}
+					
+					// Reset the byte array - very important
 					// Collect the response and send it back to client
-					sendData = response.getBytes();
-					DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, recPacket.getAddress(), recPacket.getPort());
-					socket.send(sendPacket);
-					log.info("Replied to client " + recPacket.getAddress() + ":" + recPacket.getPort() +" " + response);
-				}
+					}
 				catch(Exception e)
 				{
-					log.error("Socket error occured with cause" + e.getMessage());
+					log.info("Socket error occured with cause" + e.getMessage());
 				}
 			}
 		}
 		catch(Exception e)
 		{	
-			log.error("Server connection open on port "  + " exited with " + e.getMessage());
+			log.info("Server connection open on port "  + " exited with " + e.getMessage());
 		}
+		}
+
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+		receive(portNumber);
+		
+	}
+	}
+	public static class ClientPropose implements Serializable
+	{
+		private static final long serialVersionUID = 1L;
+		ClientPropose(int data)
+		{
+			this.data = data;
+		}
+		public int data;
+	}
+	public static class ClientReply implements Serializable
+	{
+		private static final long serialVersionUID = 1L;
+		ClientReply(int data)
+		{
+			this.data = data;
+		}
+		public int data;
+	}
+	public static class PacketExecutor implements Runnable {
+		InetAddress inetAddress;
+		byte[] data;
+	    public PacketExecutor(InetAddress inetAddress, byte [] data) {
+	        this.inetAddress = inetAddress;
+	        this.data = data; 
+	    }
+
+	    public void run() {
+	    
+		String response = "";
+			// Validating the input string
+		try{
+			HostPorts peer = findPeerIndex(inetAddress);
+			if((peer == null))
+			{
+				response = "403 FORBIDDEN";
+				log.info("Received at client" + me + " from client process - Unknown  result: " + response);
+				return;
+			}
+			else{
+				Object recObj = null;
+				ObjectInputStream iStream = new ObjectInputStream(new ByteArrayInputStream(data));
+				recObj = iStream.readObject();
+				iStream.close();
+				response = "ACK";
+			    if(recObj instanceof ClientPropose) {
+			       	ClientPropose incomingProposal = (ClientPropose) recObj;
+			    	Integer value = new Integer(incomingProposal.data);
+			    	S.add(value);
+			    	recStatus.put(peer.getHostIndex(), Status.REC);
+			    	send( new ClientReply(proposal), peer.getHostName() , portNumber);
+			    } else if (recObj instanceof ClientReply)
+			    {
+			    	ClientReply incomingProposal = (ClientReply) recObj;  
+			    	Integer value = new Integer(incomingProposal.data);
+					S.add(value);
+			    	recStatus.put(peer.getHostIndex(), Status.REC);
+			    }
+			    else
+			    {
+			    	response = "400 BAD REQUEST";
+					log.info("Received at client" + me + " from client process - " + peer +  "-->" + data + " result: " + response);
+					return;
+			    }
+			}
+	    } catch (UnknownHostException e) {
+			log.info("error generated: " + e.getMessage());
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			log.info("error generated: " + e.getMessage());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			log.info("error generated: " + e.getMessage());
+		}	
+	    }
+		public boolean validateString(String s)
+		{
+			return s.matches(".*\\d+.*");
+		}
+		
 	}
 	
-	void send(String sendProtocolString, String hostname, int port)
+	public static void send(Object proposalOverlay, String hostname, int port) throws SocketException
 	{
-		System.out.println("hostname : " + hostname + " port : " + port);
+		DatagramSocket socket= new DatagramSocket();
 		try{
-			byte[] sendingBytes = sendProtocolString.getBytes();
-			byte[] recBytes = new byte[1024];
+			ByteArrayOutputStream bStream = new ByteArrayOutputStream();
+			ObjectOutput oo = new ObjectOutputStream(bStream); 
+			oo.writeObject(proposalOverlay);
+			oo.close();
+			byte[] sendingBytes = bStream.toByteArray();
 			DatagramPacket sendPacket = new DatagramPacket(sendingBytes, sendingBytes.length, InetAddress.getByName(hostname),port);
-			DatagramPacket receivePacket = new DatagramPacket(recBytes, recBytes.length);
-			DatagramSocket socket = new DatagramSocket();
-			socket.send(sendPacket);
-			// Set the timeout to be 5 seconds for an unresponsive server.
 			socket.setSoTimeout(5000);
-			while(true)
-			{
-				try{
-				socket.receive(receivePacket);
-				String receivedString = new String(receivePacket.getData());
-				if(validateString(receivedString))
-					System.out.println("Received from server at -" + " "+ receivedString);
-				else
-					System.out.println("MALFORMED response from server");
-				socket.close();
-				return;
-				}
-				catch(Exception e)
-				{
-					// Very important to return after an exception is caught. In the case of an exception due to timeout
-					// abort connection and exit code.
-					System.out.println("Datagram packet receive routine failed with " + e.getMessage());
-				}
-				finally{
-					// In case an exception occured such as a timeout fail, abort connection and move on to next request.
-					socket.close();
-					
-					}
-				
-				}
-			}
+			socket.connect(InetAddress.getByName(hostname), port);
+			socket.send(sendPacket);
+		}
+			// Set the timeout to be 5 seconds for an unresponsive server.
 		catch(Exception e)
 		{
-			e.printStackTrace();
+			log.info(e.getMessage());
+		}
+		finally{
+			socket.close();
 		}
 	}
-	public void startProcess(String hostname, int port){
-	
-	
-	
-	}
-	public static boolean validateString(String s)
+	private static int propose(Integer value) throws SocketException
 	{
-		return s.matches("\\A\\p{ASCII}*\\z");
+		(new Thread(new Server())).start();
+		for(HostPorts hostPort: peers)
+		 {
+			 if(hostPort.getHostIndex()!=me){
+			 log.info("me " + me + "value to send to " + hostPort.getHostIndex() );
+			 send(new ClientPropose(value.intValue()), hostPort.getHostName(), hostPort.getPort());
+			 }
+		}
+		while(!allReceived()){
+			
+		}
+		Integer max = null;
+		if(S.isEmpty() || S == null)
+			max = new Integer(Integer.MIN_VALUE);
+		else
+			max = Collections.max(S);
+
+		decided = Math.max(value, max);
+		log.info(" Setting decided to " + decided + " chosen from max of set: " + S + " U " + value);
+		return decided;
+	}
+	
+	public static boolean allReceived()
+	{
+		boolean result = true;
+		for(HostPorts hostPort: peers)
+		{
+			if(hostPort.getHostIndex()!= me)
+				if(recStatus.get(hostPort.getHostIndex()).compareTo(Status.REC) != 0)
+					result = false;
+		}
+		return result;
+	}
+	
+	public static HostPorts findPeerIndex(InetAddress inetAddresss) throws UnknownHostException
+	{
+		String hostname = inetAddresss.getHostAddress();
+		HostPorts hostPortVal = null;
+		for(HostPorts hostPort: peers)
+		{	
+			String match =  InetAddress.getByName(hostPort.getHostName()).getHostAddress();
+			if(hostPort.getHostName().toLowerCase().trim().equalsIgnoreCase("localhost"))
+				match =  InetAddress.getLocalHost().getHostAddress();
+			if(match.equalsIgnoreCase(hostname))
+				hostPortVal = hostPort;
+		}
+		return hostPortVal;
 	}
 	
 	public static void main(String args[]) throws NumberFormatException, IOException
 	{
-	
 		portNumber = null;
 		hostFile = null;
 		maxCrashes = null;
@@ -136,14 +277,12 @@ public class Process {
 		hostFile = parseResults.hostFile;
 		maxCrashes = parseResults.maxCrashes;
 		peers = new ArrayList<HostPorts>();
-		int numProcs = 0;
 		Path path = Paths.get(System.getProperty("user.dir"));
 		String [][] hostPorts =Utility.readConfigFile(path.getParent().getParent() + hostFile);
 		String hostname = InetAddress.getLocalHost().getHostAddress();
-		Integer me = null;
+		recStatus = new ConcurrentHashMap<Integer,Status>();
 		for(int a=0; a<hostPorts.length ; a++)
 		{	
-			numProcs++;
 			if(hostPorts[a][1] == null)
 				break;
 			HostPorts newHostPort = new HostPorts(Integer.parseInt(hostPorts[a][0]), hostPorts[a][1], portNumber);
@@ -151,8 +290,9 @@ public class Process {
 			if(hostPorts[a][1].toLowerCase().trim().equalsIgnoreCase("localhost"))
 				match =  InetAddress.getLocalHost().getHostAddress();
 			if(match.equalsIgnoreCase(hostname))
-				me = new Integer(a);
+				me = new Integer(hostPorts[a][0]);
 			peers.add(newHostPort);
+			recStatus.put(new Integer(hostPorts[a][0]), Status.UNTRIED);
 		}
 		if(me == null)
 		{
@@ -160,7 +300,9 @@ public class Process {
 			System.exit(-1);
 		}	
 		log= Logger.getLogger("Process #" + me);
-		Utility.configureLogger(log);
+		configureLogger(log);
 		log.info("Process #" + me + " started!");
+		proposal = me;
+		propose(proposal);
 	}
 }

@@ -4,52 +4,12 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.PrintStream;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.FileAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
 
 public class Utility {
 
 	public static final int maxNumReplicas = 10;
 	public static final int hostPortColumn = 2;
-	private static final String logfilePath = System.getProperty("user.dir") + "/procs.log";
-	private static final String kickstartDirPath = System.getProperty("user.dir");
-	private static final String kickstartFilePath = System.getProperty("user.dir") + "/kickstart.sh";
-	public static void configureLogger(Logger log)
-	{
-		ConsoleAppender console = new ConsoleAppender(); //create appender
-		//configure the appender
-		String PATTERN = "%d [%p|%c|%C{1}] %m%n";
-		console.setLayout(new PatternLayout(PATTERN)); 
-		console.setThreshold(Level.ALL);
-		console.activateOptions();
-		//add appender to any Logger (here is root)
-		log.addAppender(console);
-
-		FileAppender fa = new FileAppender();
-		fa.setName("FileLogger");
-		fa.setFile(logfilePath);
-		fa.setLayout(new PatternLayout("%d %-5p [%c{1}] %m%n"));
-		fa.setThreshold(Level.ALL);
-		fa.setAppend(true);
-		fa.activateOptions();
-
-		//add appender to any Logger (here is root)
-		log.addAppender(fa);
-		//repeat with all other desired appenders
-		log.setAdditivity(false);
-	}
 	
 	public static String[][] readConfigFile(String hostFile)
 	{		
@@ -215,50 +175,5 @@ public class Utility {
 		}
 
 	}
-	
-	public static void writeToFile(StringBuilder sb) throws IOException
-	{
-		
-		FileUtils.writeStringToFile(new File(kickstartFilePath),sb.toString());
-	}
-	
-	public static void createShellScript(List<HostPorts> hostPorts, String hostFile, Integer maxCrashes) throws IOException
-	{
-		StringBuilder tmp = new StringBuilder(); // Using default 16 character size
-		int counter = 0;
-		String prepend = "ENDSSH";
-		// count up timer for 5 seconds
-		tmp.append("for i in {1..5}; do ");
-		tmp.append(System.getProperty("line.separator"));
-		tmp.append("	printf \'\\r%2d\' $i");
-		tmp.append(System.getProperty("line.separator"));
-		tmp.append("	sleep 1");
-		tmp.append(System.getProperty("line.separator"));
-		tmp.append("done");
-		tmp.append(System.getProperty("line.separator"));
-		for(HostPorts hostPort: hostPorts)
-		{
-			tmp.append("ssh -T " + hostPort.getHostName());
-			tmp.append(" <<" + "\'" + prepend + (counter) + "\'");
-			tmp.append(System.getProperty("line.separator"));
-			tmp.append("cd " + System.getProperty("user.dir"));
-			tmp.append(System.getProperty("line.separator"));
-			tmp.append("java -jar Process.jar");
-			tmp.append(" -p " + hostPort.getPort() );
-			tmp.append(" -h " + hostFile);
-			tmp.append(" -f " + maxCrashes);
-			tmp.append(System.getProperty("line.separator"));
-			tmp.append(prepend + (counter++));
-			tmp.append(System.getProperty("line.separator"));
-		}
-		Utility.writeToFile(tmp);
-	}
-	
-	public static void kickstart() throws IOException, InterruptedException
-	{
-		ProcessBuilder pb = new ProcessBuilder("./kickstart.sh");
-		pb.directory(new File(kickstartDirPath));
-		Process p = pb.start();
-		p.waitFor();
-	}
+
 }

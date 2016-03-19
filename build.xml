@@ -31,6 +31,12 @@
 </target>
 <target name="clean">
     <delete dir="target/classes"/>
+	<delete>
+	  	<fileset dir="deliverables/step1" includes="*.jar"/>
+		<fileset dir="deliverables/step2" includes="*.jar"/>
+		<fileset dir="deliverables/step3" includes="*.jar"/>
+		<fileset dir="deliverables/step4" includes="*.jar"/>
+	</delete>
 </target>
 <target depends="clean" name="cleanall"/>
 <target depends="build-subprojects,build-project" name="build"/>
@@ -60,8 +66,8 @@
           	
    <!--this file was created by Eclipse Runnable JAR Export Wizard-->
       	    <!--ANT 1.7 is required                                        -->
-     <target name="jar" depends="build">
-     	  <jar destfile="deliverables/step1/Process.jar" filesetmanifest="mergewithoutmain">
+     <target name="jar" depends="cleanall,init,build">
+     	  <jar destfile="deliverables/step1/Process.jar" filesetmanifest="skip" update= "true">
      	            <manifest>
      	                <attribute name="Main-Class" value="step1.Process"/>
      	                <attribute name="Class-Path" value="."/>
@@ -71,7 +77,7 @@
      	            <zipfileset excludes="META-INF/*.SF" src="resources/log4j-1.2.17.jar"/>
       	        </jar>
      	
-     	 <jar destfile="deliverables/step1/Leader.jar" filesetmanifest="mergewithoutmain">
+     	 <jar destfile="deliverables/step1/Leader.jar" filesetmanifest="skip" update = "true">
      	            <manifest>
      	                <attribute name="Main-Class" value="step1.Leader"/>
      	                <attribute name="Class-Path" value="."/>
