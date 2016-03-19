@@ -61,11 +61,10 @@ public class Leader {
 		createKillShellScript(peers);
 		System.out.println("Killing existing programs on the multiple hosts.. \n");
 		killAll();
-		loadingBar(100);
+		loadingBar(50);
 		System.out.println("\nStarting program on the multiple hosts.. \n");
-		loadingBar(1050);
 		kickstart();
-		System.out.println("\nAll processes are awake. Check deliverables/step1/proclogs for more info.");
+		System.out.println("\nAll processes are awake. Check deliverables/step1/logs for more info.");
 	}
 	public static void createKillShellScript(List<HostPorts> hostPorts) throws IOException
 	{
