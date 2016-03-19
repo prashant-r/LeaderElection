@@ -32,8 +32,6 @@ public class Leader {
 	private static final String kickstartFilePath = System.getProperty("user.dir") + "/kickstart.sh";
 	private static final String killAllFilePath = System.getProperty("user.dir") + "/killall.sh";
 	private static final String kickstartDirPath = System.getProperty("user.dir");
-	private static final String logfilePath = System.getProperty("user.dir") + "/log/procs";
-
 	public static void main(String args[]) throws NumberFormatException, IOException, InterruptedException
 	{
 		System.out.println("Preparing to execute step #1 of project requirement..\n");
@@ -98,7 +96,7 @@ public class Leader {
 			tmp.append(System.getProperty("line.separator"));
 			tmp.append("cd " + System.getProperty("user.dir"));
 			tmp.append(System.getProperty("line.separator"));
-			tmp.append("java -jar Process.jar -Duniquename=cs505ex6step1 ");
+			tmp.append("java -jar Process.jar ");
 			tmp.append(" -p " + hostPort.getPort() );
 			tmp.append(" -h " + hostFile);
 			tmp.append(" -f " + maxCrashes);

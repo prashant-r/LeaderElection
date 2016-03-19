@@ -32,10 +32,11 @@
 <target name="clean">
     <delete dir="target/classes"/>
 	<delete>
-	  	<fileset dir="deliverables/step1" includes="*.jar"/>
-		<fileset dir="deliverables/step2" includes="*.jar"/>
-		<fileset dir="deliverables/step3" includes="*.jar"/>
-		<fileset dir="deliverables/step4" includes="*.jar"/>
+	  	<fileset dir="deliverables/step1" includes="**/*.*"/>
+		<fileset dir="deliverables/step1" includes="**/*.*"/>
+		<fileset dir="deliverables/step2" includes="**/*.*"/>
+		<fileset dir="deliverables/step3" includes="**/*.*"/>
+		<fileset dir="deliverables/step4" includes="**/*.*"/>
 	</delete>
 </target>
 <target depends="clean" name="cleanall"/>
@@ -66,7 +67,7 @@
           	
    <!--this file was created by Eclipse Runnable JAR Export Wizard-->
       	    <!--ANT 1.7 is required                                        -->
-     <target name="jar" depends="cleanall,init,build">
+     <target name="jar" depends="cleanall, init, build">
      	  <jar destfile="deliverables/step1/Process.jar" filesetmanifest="skip" update= "true">
      	            <manifest>
      	                <attribute name="Main-Class" value="step1.Process"/>
