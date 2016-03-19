@@ -32,11 +32,10 @@
 <target name="clean">
     <delete dir="target/classes"/>
 	<delete>
-	  	<fileset dir="deliverables/step1" includes="**/*.*"/>
-		<fileset dir="deliverables/step1" includes="**/*.*"/>
-		<fileset dir="deliverables/step2" includes="**/*.*"/>
-		<fileset dir="deliverables/step3" includes="**/*.*"/>
-		<fileset dir="deliverables/step4" includes="**/*.*"/>
+		<fileset dir="deliverables/step1" includes="**/*.log, **/*.sh, **/*.jar"/>
+		<fileset dir="deliverables/step2" includes="**/*.log, **/*.sh, **/*.jar"/>
+		<fileset dir="deliverables/step3" includes="**/*.log, **/*.sh, **/*.jar"/>
+		<fileset dir="deliverables/step4" includes="**/*.log, **/*.sh, **/*.jar"/>
 	</delete>
 </target>
 <target depends="clean" name="cleanall"/>
