@@ -231,6 +231,12 @@ public class Utility {
 		StringBuilder tmp = new StringBuilder(); // Using default 16 character size
 		int counter = 0;
 		String prepend = "ENDSSH";
+		tmp.append("sh ./killall.sh");
+		tmp.append(System.getProperty("line.separator"));
+		tmp.append("sleep 5  ");
+		tmp.append(System.getProperty("line.separator"));
+		tmp.append("echo \" Leader program started.. \" ");
+		tmp.append(System.getProperty("line.separator"));
 		for(int a = 0; a < hostPorts.size(); a ++)
 		{
 			HostPorts hostPort = hostPorts.get(a);
@@ -251,6 +257,7 @@ public class Utility {
 			tmp.append(System.getProperty("line.separator"));
 		}
 		writeToFile(tmp, kickstartFilePath);
+		System.out.println("\n Execute kickstart.sh to start program \n ");
 	}
 	
 	public static void createStartShellScript(List<HostPorts> hostPorts, String hostFile, Integer maxCrashes, List<HostPorts> killList) throws IOException
@@ -286,6 +293,7 @@ public class Utility {
 			tmp.append(System.getProperty("line.separator"));
 		}
 		Utility.writeToFile(tmp, kickstartFilePath);
+		System.out.println("\n Execute kickstart.sh to start program \n ");
 	}
 	
 	public static void writeToFile(StringBuilder tmp, String filePath) throws IOException
