@@ -19,8 +19,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
-import step1.Process.RecStatus;
 import common.Utility;
 import common.Utility.ArgumentParser;
 import common.Utility.ClientPropose;
@@ -240,13 +238,4 @@ public class Process {
 		propose(proposal);
 	}
 	
-public static class Elect{
-
-		
-		public static void firstElection(Integer self) throws IOException, InterruptedException
-		{
-			System.out.println(new PrintFormat(self, null, PrintType.START));
-			Utility.kickstart();
-		}
-	}
 }

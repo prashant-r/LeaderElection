@@ -7,7 +7,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-import step2.Process.Elect;
 import common.Utility.ArgumentParser;
 import common.Utility;
 import common.Utility.HostPorts;

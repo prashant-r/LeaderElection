@@ -17,16 +17,21 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
 import common.Utility;
 import common.Utility.ArgumentParser;
 import common.Utility.ClientReply;
+import common.Utility.HeartBeatBack;
 import common.Utility.HostPorts;
+import common.Utility.Kill;
 import common.Utility.ParseResults;
 import common.Utility.PrintFormat;
 import common.Utility.PrintType;
 import common.Utility.HeartBeat;
+import common.Utility.ReElect;
+
 
 public class Process {
 	public static Integer portNumber;
@@ -38,6 +43,7 @@ public class Process {
 	public static ConcurrentHashMap<Integer, Status> recStatus;
 	public static ConcurrentHashMap<Integer, Status> pulseStatus;
 	public static Integer me;
+	public static volatile boolean crashed = false;
 	public static Integer proposal;
 	public enum Status{
 		REC, TIMEOUT, UNTRIED
@@ -50,12 +56,13 @@ public class Process {
 			try{
 				socket = new DatagramSocket(port);
 				byte[] recData = new byte[1024];
-				while(true)
+				while(!crashed)
 				{			
 					try{
 						DatagramPacket recPacket = new DatagramPacket(recData,recData.length);
 						socket.receive(recPacket);
-						new Thread(new PacketExecutor(recPacket.getAddress(),Arrays.copyOf(recData, recData.length) )).start();
+						if(!crashed)
+							new Thread(new PacketExecutor(recPacket.getAddress(),Arrays.copyOf(recData, recData.length) )).start();
 						Arrays.fill(recData, (byte) 0 );
 
 						// Reset the byte array - very important
@@ -122,7 +129,30 @@ public class Process {
 			    }
 				else if (recObj instanceof HeartBeat)
 				{
+					 
 					// System.out.println(" Received heartbeat at " + me + " from " + peer.getHostIndex());
+					 send(new HeartBeatBack(),peer.getHostName(), peer.getPort() );
+				}
+				else if( recObj instanceof HeartBeatBack)
+				{
+					pulseStatus.put(peer.getHostIndex(), Status.REC);
+				}
+				else if (recObj instanceof ReElect)
+				{
+					System.out.println(new PrintFormat(me, decided, PrintType.CRASHED));
+					try {
+						decidedAltered = true;
+						decided = new Integer(proposal);
+						tResilience(proposal);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+				
+				else if( recObj instanceof Kill)
+				{
+					crashed = true;
 				}
 			    else
 			    {
@@ -156,8 +186,6 @@ public class Process {
 			oo.close();
 			byte[] sendingBytes = bStream.toByteArray();
 			DatagramPacket sendPacket = new DatagramPacket(sendingBytes, sendingBytes.length, InetAddress.getByName(hostname),port);
-			socket.setSoTimeout(300);
-			socket.connect(InetAddress.getByName(hostname), port);
 			socket.send(sendPacket);
 		}
 			// Set the timeout to be 5 seconds for an unresponsive server.
@@ -174,7 +202,7 @@ public class Process {
 		for(int k = 0; k <= maxCrashes; k ++)
 		{
 			if(decidedAltered)
-				broadcastMsg(decided);
+				broadcastMsg(new ClientReply(decided.intValue()));
 			decidedAltered = false;
 			Thread.sleep(1000);
 		}		
@@ -182,12 +210,12 @@ public class Process {
 		return decided;
 	}
 	
-	public static void broadcastMsg(Integer proposal) throws SocketException
+	public static void broadcastMsg(Object proposal) throws SocketException
 	{
 		for(HostPorts hostPort: peers)
 		 {
 			 if(hostPort.getHostIndex()!=me){
-					 send(new ClientReply(proposal.intValue()), hostPort.getHostName(), hostPort.getPort());
+					 send(proposal, hostPort.getHostName(), hostPort.getPort());
 			 }
 		}
 	}
@@ -210,6 +238,23 @@ public class Process {
 	    
 	    public void pulseMonitor(Object heartBeat) throws SocketException, InterruptedException
 	    {
+	    	
+	    	
+			Random r = new Random();
+			//crash chance 1/60
+			int randInt = r.nextInt(59);
+			if ( randInt == 10){
+				for(HostPorts hostPort: peers)
+				{
+					if(hostPort.getHostIndex()!=me){
+						if(hostPort.getHostIndex() == decided.intValue())
+						{
+							send(new Kill(), hostPort.getHostName(), hostPort.getPort());
+						}
+					}
+				}
+				
+			}
 	    	for(HostPorts hostPort: peers)
 	    		pulseStatus.put(hostPort.getHostIndex(), Status.UNTRIED);
 	    	for(HostPorts hostPort: peers)
@@ -222,7 +267,14 @@ public class Process {
 						 {
 							 if(hostPort.getHostIndex() == decided)
 							 { // Leader is down start
-								 
+
+								System.out.println(new PrintFormat(me, null, PrintType.START));
+								decided = new Integer(proposal);
+								broadcastMsg(new ReElect());
+							 }
+							 else
+							 {
+								 pulseStatus.put(hostPort.getHostIndex(), Status.TIMEOUT);
 							 }
 						 }
 				 }
@@ -292,6 +344,7 @@ public class Process {
 		proposal = me;
 		decided = new Integer(proposal);
 		(new Thread(new Server())).start();
+		new HeartBeatClientThread().start();
 		Thread.sleep(2000);
 		tResilience(proposal);
 		}

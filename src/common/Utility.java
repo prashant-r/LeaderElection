@@ -28,7 +28,6 @@ public class Utility {
 	private static final String kickstartFilePath = System.getProperty("user.dir") + "/kickstart.sh";
 	private static final String killAllFilePath = System.getProperty("user.dir") + "/killall.sh";
 	private static final String kickstartDirPath = System.getProperty("user.dir");
-	private static final String logfilePath = System.getProperty("user.dir") + "/log/procs";
 	public static FileHandler fh;
 	public static String[][] readConfigFile(String hostFile)
 	{		
@@ -235,7 +234,7 @@ public class Utility {
 		for(int a = 0; a < hostPorts.size(); a ++)
 		{
 			HostPorts hostPort = hostPorts.get(a);
-			tmp.append("ssh -t -t " + hostPort.getHostName());
+			tmp.append("ssh -T " + hostPort.getHostName());
 			if( a != (hostPorts.size() -1))
 				tmp.append(" <<" + "\'" + prepend + (counter) + "\' &");
 			else
@@ -428,4 +427,17 @@ public class Utility {
 		
 	}
 	
+	public static class HeartBeatBack implements Serializable
+	{
+		
+	}
+	
+	public static class Kill implements Serializable
+	{
+		
+	}
+	public static class ReElect implements Serializable
+	{
+		
+	}
 }
