@@ -19,7 +19,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Logger;
+
 import common.Utility;
 import common.Utility.ArgumentParser;
 import common.Utility.ClientPropose;
@@ -28,32 +28,31 @@ import common.Utility.HostPorts;
 import common.Utility.ParseResults;
 
 public class Process {
-	public static Logger log;
 	public static Integer portNumber;
 	public static String hostFile;
 	public static Integer maxCrashes;
 	public static List<HostPorts> peers;
 	public static Set<Integer> S = Collections.newSetFromMap(new ConcurrentHashMap<Integer, Boolean>());
-	public static volatile Integer decided;
-	public static ConcurrentHashMap<Integer, Status> recStatus;
+	public static volatile Integer decided = null;
+	public static ConcurrentHashMap<Integer, RecStatus> recStatus;
 	public static Integer me;
 	public static Integer proposal;
-	public enum Status{
+	public enum RecStatus{
 		REC, TIMEOUT, UNTRIED
 	}	
 	public static class Server implements Runnable
 	{
 		private static void receive(int port)
 		{
-			DatagramSocket socket; 
+			DatagramSocket receiveSocket =null;
 			try{
-				socket = new DatagramSocket(port);
+				receiveSocket = new DatagramSocket(port);
 				byte[] recData = new byte[1024];
-				while(true)
+				while(decided == null)
 				{			
 					try{
 						DatagramPacket recPacket = new DatagramPacket(recData,recData.length);
-						socket.receive(recPacket);
+						receiveSocket.receive(recPacket);
 						new Thread(new PacketExecutor(recPacket.getAddress(),Arrays.copyOf(recData, recData.length) )).start();
 						Arrays.fill(recData, (byte) 0 );
 					
@@ -62,13 +61,18 @@ public class Process {
 						}
 					catch(Exception e)
 					{
-						log.info("Socket error occured with cause" + e.getMessage());
+						System.out.println("Socket error occured with cause" + e.getMessage());
 					}
 				}
 			}
 			catch(Exception e)
 			{	
-				log.info("Server connection open on port "  + " exited with " + e.getMessage());
+				System.out.println("Server connection open on port "  + " exited with " + e.getMessage());
+			}
+			finally
+			{
+				if(receiveSocket!=null)
+					receiveSocket.close();
 			}
 		}
 
@@ -90,11 +94,11 @@ public class Process {
 		String response = "";
 			// Validating the input string
 		try{
-			HostPorts peer = findPeerIndex(inetAddress);
+			HostPorts peer = Utility.findPeerIndex(inetAddress, peers);
 			if((peer == null))
 			{
 				response = "403 FORBIDDEN";
-				log.info("Received at client" + me + " from client process - Unknown  result: " + response);
+				System.out.println("Received at client" + me + " from client process - Unknown  result: " + response);
 				return;
 			}
 			else{
@@ -107,28 +111,29 @@ public class Process {
 			       	ClientPropose incomingProposal = (ClientPropose) recObj;
 			    	Integer value = new Integer(incomingProposal.data);
 			    	S.add(value);
-			    	recStatus.put(peer.getHostIndex(), Status.REC);
+			    	recStatus.put(peer.getHostIndex(), RecStatus.REC);
 			    	send( new ClientReply(proposal), peer.getHostName() , portNumber);
 			    } else if (recObj instanceof ClientReply)
+			    	
 			    {
 			    	ClientReply incomingProposal = (ClientReply) recObj;  
 			    	Integer value = new Integer(incomingProposal.data);
 					S.add(value);
-			    	recStatus.put(peer.getHostIndex(), Status.REC);
+			    	recStatus.put(peer.getHostIndex(), RecStatus.REC);
 			    }
 			    else
 			    {
 			    	response = "400 BAD REQUEST";
-					log.info("Received at client" + me + " from client process - " + peer +  "-->" + data + " result: " + response);
+					System.out.println("Received at client" + me + " from client process - " + peer +  "-->" + data + " result: " + response);
 					return;
 			    }
 			}
 	    } catch (UnknownHostException e) {
-			log.info("error generated: " + e.getMessage());
+			System.out.println("error generated: " + e.getMessage());
 		} catch (ClassNotFoundException e) {
-			log.info("error generated: " + e.getMessage());
+			System.out.println("error generated: " + e.getMessage());
 		} catch (IOException e) {
-			log.info("error generated: " + e.getMessage());
+			System.out.println("error generated: " + e.getMessage());
 		}	
 	    }
 		public boolean validateString(String s)
@@ -148,29 +153,28 @@ public class Process {
 			oo.close();
 			byte[] sendingBytes = bStream.toByteArray();
 			DatagramPacket sendPacket = new DatagramPacket(sendingBytes, sendingBytes.length, InetAddress.getByName(hostname),port);
-			socket.setSoTimeout(300);
-			socket.connect(InetAddress.getByName(hostname), port);
 			socket.send(sendPacket);
 		}
 			// Set the timeout to be 5 seconds for an unresponsive server.
 		catch(Exception e)
 		{
-			log.info(e.getMessage());
+			System.out.println(e.getMessage());
 		}
 		finally{
 			socket.close();
 		}
 	}
-	private static int propose(Integer value) throws SocketException
+	private static int propose(Integer value) throws SocketException, InterruptedException
 	{
 		(new Thread(new Server())).start();
+		Thread.sleep(200);
 		for(HostPorts hostPort: peers)
 		 {
 			 if(hostPort.getHostIndex()!=me){
-			 log.info("me " + me + "value to send to " + hostPort.getHostIndex() );
-			 send(new ClientPropose(value.intValue()), hostPort.getHostName(), hostPort.getPort());
+				 if(recStatus.get(hostPort.getHostIndex()).compareTo(RecStatus.UNTRIED) == 0)
+					send(new ClientPropose(value.intValue()), hostPort.getHostName(), hostPort.getPort());
 			 }
-		}
+		 }
 		while(!allReceived()){
 			
 		}
@@ -181,8 +185,7 @@ public class Process {
 			max = Collections.max(S);
 
 		decided = Math.max(value, max);
-		log.info(" Setting decided to " + decided + " chosen from max of set: " + S + " U " + value);
-		Utility.fh.close();
+		System.out.println(" Setting decided to " + decided + " chosen from max of set: " + S + " U " + value);
 		return decided;
 	}
 	
@@ -192,28 +195,12 @@ public class Process {
 		for(HostPorts hostPort: peers)
 		{
 			if(hostPort.getHostIndex()!= me)
-				if(recStatus.get(hostPort.getHostIndex()).compareTo(Status.REC) != 0)
+				if(recStatus.get(hostPort.getHostIndex()).compareTo(RecStatus.REC) != 0)
 					result = false;
 		}
 		return result;
 	}
-	
-	public static HostPorts findPeerIndex(InetAddress inetAddresss) throws UnknownHostException
-	{
-		String hostname = inetAddresss.getHostAddress();
-		HostPorts hostPortVal = null;
-		for(HostPorts hostPort: peers)
-		{	
-			String match =  InetAddress.getByName(hostPort.getHostName()).getHostAddress();
-			if(hostPort.getHostName().toLowerCase().trim().equalsIgnoreCase("localhost"))
-				match =  InetAddress.getLocalHost().getHostAddress();
-			if(match.equalsIgnoreCase(hostname))
-				hostPortVal = hostPort;
-		}
-		return hostPortVal;
-	}
-	
-	public static void main(String args[]) throws NumberFormatException, IOException
+	public static void main(String args[]) throws NumberFormatException, IOException, InterruptedException
 	{
 		portNumber = null;
 		hostFile = null;
@@ -226,7 +213,7 @@ public class Process {
 		Path path = Paths.get(System.getProperty("user.dir"));
 		String [][] hostPorts =Utility.readConfigFile(path.getParent().getParent() + hostFile);
 		String hostname = InetAddress.getLocalHost().getHostAddress();
-		recStatus = new ConcurrentHashMap<Integer,Status>();
+		recStatus = new ConcurrentHashMap<Integer,RecStatus>();
 		for(int a=0; a<hostPorts.length ; a++)
 		{	
 			if(hostPorts[a][1] == null)
@@ -238,16 +225,13 @@ public class Process {
 			if(match.equalsIgnoreCase(hostname))
 				me = new Integer(hostPorts[a][0]);
 			peers.add(newHostPort);
-			recStatus.put(new Integer(hostPorts[a][0]), Status.UNTRIED);
+			recStatus.put(new Integer(hostPorts[a][0]), RecStatus.UNTRIED);
 		}
 		if(me == null)
 		{
 			System.out.println("Error: this process's address and port is not registered in peer group list located in configs.txt");
 			System.exit(-1);
 		}	
-		log= Logger.getLogger("Process #" + me);
-		Utility.configureLogger(log,me);
-		log.info("Process #" + me + " started!");
 		proposal = me;
 		propose(proposal);
 	}

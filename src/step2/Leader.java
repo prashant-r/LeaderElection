@@ -1,10 +1,13 @@
 package step2;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+
+import step2.Process.Elect;
 import common.Utility.ArgumentParser;
 import common.Utility;
 import common.Utility.HostPorts;
@@ -14,10 +17,10 @@ public class Leader {
 	public static Integer portNumber;
 	public static String hostFile;
 	public static Integer maxCrashes;
-	public static int me; 
+	public static Integer me; 
 	public static void main(String args[]) throws NumberFormatException, IOException, InterruptedException
 	{
-		System.out.println("Preparing to execute step #1 of project requirement..\n");
+		me = new Integer(0);
 		portNumber = null;
 		hostFile = null;
 		maxCrashes = null;
@@ -29,7 +32,6 @@ public class Leader {
 		int numProcs = 0;
 		Path path = Paths.get(System.getProperty("user.dir"));
 		System.out.println("Loading configurations from -- " + path.getParent().getParent() + hostFile + "\n");
-
 		String [][] hostPorts =Utility.readConfigFile(path.getParent().getParent() + hostFile);
 		for(int a=0; a<hostPorts.length ; a++)
 		{	
@@ -39,14 +41,11 @@ public class Leader {
 			HostPorts newHostPort = new HostPorts(Integer.parseInt(hostPorts[a][0]), hostPorts[a][1], portNumber);
 			peers.add(newHostPort);
 		}
+		HostPorts hostPort = Utility.findPeerIndex(InetAddress.getLocalHost(), peers);
+		if(hostPort!=null)
+			me = new Integer(hostPort.getHostIndex());
 		Utility.ArgumentParser.validateMaxCrashes(maxCrashes, numProcs);
 		Utility.createStartShellScript(peers,hostFile, maxCrashes);
 		Utility.createKillShellScript(peers);
-		System.out.println("Killing existing programs on the multiple hosts.. \n");
-		Utility.killAll();
-		Utility.loadingBar(50);
-		System.out.println("\nStarting program on the multiple hosts.. \n");
-		Utility.kickstart();
-		System.out.println("\nAll processes are awake. Check deliverables/step1/logs for more info.");
 	}
 }

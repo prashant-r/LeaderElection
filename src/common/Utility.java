@@ -4,21 +4,23 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.io.Serializable;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Scanner;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.FileHandler;
-import java.util.logging.Handler;
-import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
-
 public class Utility {
 
 	public static final int maxNumReplicas = 10;
@@ -55,6 +57,10 @@ public class Utility {
 		return hostPorts;
 	}
 	
+	
+	public enum PrintType{
+		START, ELECTED, CRASHED
+	}	
 	public static class HostPorts
 	{
 		int hostIndex;
@@ -95,11 +101,13 @@ public class Utility {
 		public int portNumber;
 		public String hostFile;
 		public int maxCrashes;
-		public ParseResults(int portNumber, String hostFile, int maxCrashes) {
+		public boolean kill;
+		public ParseResults(int portNumber, String hostFile, int maxCrashes, Boolean kill) {
 			super();
 			this.portNumber = portNumber;
 			this.hostFile = hostFile;
 			this.maxCrashes = maxCrashes;
+			this.kill = kill;
 		}
 	}
 	
@@ -111,6 +119,7 @@ public class Utility {
 			Integer portNumber = null;
 			String hostFile = null;
 			Integer maxCrashes = null;	
+			Boolean kill = new Boolean(false);
 			if(args.length==0 )
 			{
 				BufferedReader br = new BufferedReader( new InputStreamReader(System.in));
@@ -134,6 +143,8 @@ public class Utility {
 			        case "-f":
 			        	maxCrashes = Integer.parseInt(args[++i]);
 			        	break;
+			        case "-k":
+			        	kill = true;
 			         default:
 			         break;
 			        }
@@ -154,7 +165,7 @@ public class Utility {
 	        		System.out.println("MaxCrashes must be [" + Math.min(actualNumReplicas-2, 0) + "," +(actualNumReplicas -2) + "]| Your input was " + maxCrashes);
 	        		System.exit(-1);
 	        	}
-				ParseResults parseResults = new ParseResults(portNumber, hostFile, maxCrashes);
+				ParseResults parseResults = new ParseResults(portNumber, hostFile, maxCrashes, kill);
 				return parseResults;
 		}
 		/*
@@ -197,10 +208,17 @@ public class Utility {
 		StringBuilder tmp = new StringBuilder(); // Using default 16 character size
 		int counter = 0;
 		String prepend = "ENDSSH";
-		for(HostPorts hostPort: hostPorts)
+		for(int a = 0; a < hostPorts.size(); a ++)
 		{
+			HostPorts hostPort = hostPorts.get(a);
+			tmp.append(" echo \' Killing Process on host with index # " + hostPort.getHostIndex() + " \'");
+			tmp.append(System.getProperty("line.separator"));
+			
 			tmp.append("ssh -T " + hostPort.getHostName());
-			tmp.append(" <<" + "\'" + prepend + (counter) + "\' &");
+			if( a != (hostPorts.size() -1))
+				tmp.append(" <<" + "\'" + prepend + (counter) + "\' &");
+			else
+				tmp.append(" <<" + "\'" + prepend + (counter) + "\' ");
 			tmp.append(System.getProperty("line.separator"));
 			tmp.append("jps -l | grep Process.jar | awk \'{print $1}\' | xargs kill -9");
 			tmp.append(System.getProperty("line.separator"));
@@ -214,10 +232,14 @@ public class Utility {
 		StringBuilder tmp = new StringBuilder(); // Using default 16 character size
 		int counter = 0;
 		String prepend = "ENDSSH";
-		for(HostPorts hostPort: hostPorts)
+		for(int a = 0; a < hostPorts.size(); a ++)
 		{
-			tmp.append("ssh -T " + hostPort.getHostName());
-			tmp.append(" <<" + "\'" + prepend + (counter) + "\' &");
+			HostPorts hostPort = hostPorts.get(a);
+			tmp.append("ssh -t -t " + hostPort.getHostName());
+			if( a != (hostPorts.size() -1))
+				tmp.append(" <<" + "\'" + prepend + (counter) + "\' &");
+			else
+				tmp.append(" <<" + "\'" + prepend + (counter) + "\' ");
 			tmp.append(System.getProperty("line.separator"));
 			tmp.append("cd " + System.getProperty("user.dir"));
 			tmp.append(System.getProperty("line.separator"));
@@ -231,6 +253,42 @@ public class Utility {
 		}
 		writeToFile(tmp, kickstartFilePath);
 	}
+	
+	public static void createStartShellScript(List<HostPorts> hostPorts, String hostFile, Integer maxCrashes, List<HostPorts> killList) throws IOException
+	{
+		StringBuilder tmp = new StringBuilder(); // Using default 16 character size
+		int counter = 0;
+		String prepend = "ENDSSH";
+		tmp.append("sh ./killall.sh");
+		tmp.append(System.getProperty("line.separator"));
+		tmp.append("sleep 5  ");
+		tmp.append(System.getProperty("line.separator"));
+		tmp.append("echo \" Leader program started.. \" ");
+		tmp.append(System.getProperty("line.separator"));
+		for(int a = 0; a < hostPorts.size(); a ++)
+		{
+			HostPorts hostPort = hostPorts.get(a);
+			tmp.append("ssh -T " + hostPort.getHostName());
+			if( a != (hostPorts.size() -1))
+				tmp.append(" <<" + "\'" + prepend + (counter) + "\' &");
+			else
+				tmp.append(" <<" + "\'" + prepend + (counter) + "\' ");
+			tmp.append(System.getProperty("line.separator"));
+			tmp.append("cd " + System.getProperty("user.dir"));
+			tmp.append(System.getProperty("line.separator"));
+			tmp.append("java -jar Process.jar ");
+			tmp.append(" -p " + hostPort.getPort() );
+			tmp.append(" -h " + hostFile);
+			tmp.append(" -f " + maxCrashes);
+			if(killList.contains(hostPort))
+				tmp.append(" -k" );
+			tmp.append(System.getProperty("line.separator"));
+			tmp.append(prepend + (counter++));
+			tmp.append(System.getProperty("line.separator"));
+		}
+		Utility.writeToFile(tmp, kickstartFilePath);
+	}
+	
 	public static void writeToFile(StringBuilder tmp, String filePath) throws IOException
 	{
 		byte data[] = tmp.toString().getBytes();
@@ -256,8 +314,21 @@ public class Utility {
 	{
 		ProcessBuilder pb = new ProcessBuilder("./kickstart.sh");
 		pb.directory(new File(kickstartDirPath));
-		java.lang.Process p = pb.start();
-		p.waitFor();
+		java.lang.Process p = pb.start();	
+		inheritIO(p.getInputStream(), System.out);
+
+	}
+	
+	private static void inheritIO(final InputStream src, final PrintStream dest) {
+	    new Thread(new Runnable() {
+	        public void run() {
+	            Scanner sc = new Scanner(src);
+	            while(true){
+	            while (sc.hasNextLine()) {
+	                dest.println(sc.nextLine());
+	            }
+	        }}
+	    }).start();
 	}
 
 	public static void killAll() throws IOException, InterruptedException
@@ -265,7 +336,17 @@ public class Utility {
 		ProcessBuilder pb = new ProcessBuilder("./killall.sh");
 		pb.directory(new File(kickstartDirPath));
 		java.lang.Process p = pb.start();
-		p.waitFor(5, TimeUnit.SECONDS);
+		 try (BufferedReader processOutputReader = new BufferedReader(
+	                new InputStreamReader(p.getInputStream()));)
+	        {
+	            String readLine;
+	            while ((readLine = processOutputReader.readLine()) != null)
+	            {
+	                System.out.println(readLine + System.lineSeparator());
+	            }
+
+	            p.waitFor();
+	        }
 	}
 
 	public static void loadingBar(int time) throws IOException, InterruptedException
@@ -277,33 +358,7 @@ public class Utility {
 			Thread.sleep(time);
 		}
 	}
-	
-	public static void configureLogger(Logger log, int clientId)
-	{
 
-    try {  
-
-        // This block configure the logger with handler and formatter  
-    	fh = new FileHandler(logfilePath + clientId +".log",false);  
-        Logger globalLogger = Logger.getLogger("global");
-        Handler[] handlers = globalLogger.getHandlers();
-        for(Handler handler : handlers) {
-            globalLogger.removeHandler(handler);
-        }
-        log.setUseParentHandlers(false);
-        log.addHandler(fh);
-        System.setProperty("java.util.logging.SimpleFormatter.format", 
-                "%1$tF %1$tT %4$s %2$s %5$s%6$s%n");
-        SimpleFormatter formatter = new SimpleFormatter();  
-        fh.setFormatter(formatter);  
-    } catch (SecurityException e) {  
-        log.info(e.getMessage());  
-    } catch (IOException e) {  
-        log.info(e.getMessage());
-    }  
-    
-	}
-	
 	public static class ClientPropose implements Serializable
 	{
 		private static final long serialVersionUID = 1L;
@@ -322,4 +377,55 @@ public class Utility {
 		}
 		public int data;
 	}
+	
+	public static HostPorts findPeerIndex(InetAddress inetAddresss, List<HostPorts> peerss) throws UnknownHostException
+	{
+		String hostname = inetAddresss.getHostAddress();
+		HostPorts hostPortVal = null;
+		for(HostPorts hostPort: peerss)
+		{	
+			String match =  InetAddress.getByName(hostPort.getHostName()).getHostAddress();
+			if(hostPort.getHostName().toLowerCase().trim().equalsIgnoreCase("localhost"))
+				match =  InetAddress.getLocalHost().getHostAddress();
+			if(match.equalsIgnoreCase(hostname))
+				hostPortVal = hostPort;
+		}
+		return hostPortVal;
+	}
+	
+	
+	public static class PrintFormat
+	{
+		Integer self;
+		Integer leader;
+		PrintType printType;
+		
+		 public PrintFormat(Integer self, Integer leader, PrintType printType) {
+			super();
+			this.self = self;
+			this.leader = leader;
+			this.printType = printType;
+		}
+
+		@Override
+		    public String toString() {
+			 	if(printType.compareTo(PrintType.START) ==0 ){
+		        return " \n " + String.format(" [" + new SimpleDateFormat("HH:mm:ss").format(Calendar.getInstance().getTime())+ " ] "+ " Node " +  self + " begin another leader election.");
+			 	}
+			 	else if (printType.compareTo(PrintType.ELECTED) == 0)
+			 	{
+			 		return " \n " + String.format(" [" + new SimpleDateFormat("HH:mm:ss").format(Calendar.getInstance().getTime())+ " ] "+ " Node " +  self + " : node " + leader + " is elected as new leader.");
+			 	}
+			 	else
+			 	{
+			 		return "\n " + String.format(" [" + new SimpleDateFormat("HH:mm:ss").format(Calendar.getInstance().getTime())+ " ] "+ " Node " +  self + " : leader node " + leader + " has crashed." );
+			 	}
+		    }
+	}
+	
+	public static class HeartBeat implements Serializable
+	{
+		
+	}
+	
 }

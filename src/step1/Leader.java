@@ -44,7 +44,6 @@ public class Leader {
 		Utility.createKillShellScript(peers);
 		System.out.println("Killing existing programs on the multiple hosts.. \n");
 		Utility.killAll();
-		Utility.loadingBar(50);
 		System.out.println("\nStarting program on the multiple hosts.. \n");
 		Utility.kickstart();
 		System.out.println("\nAll processes are awake. Check deliverables/step1/logs for more info.");
