@@ -48,6 +48,12 @@ public class Process {
 	public enum Status{
 		REC, TIMEOUT, UNTRIED
 	}	
+	/*
+	 * Server thread that receives packets as and when the arrive following which,
+	 * a new PacketExecutor thread would be started to handle this received packet.
+	 * This was done so that server thread runs independently of the algorithm and doesn't 
+	 * block.
+	 */
 	public static class Server implements Runnable
 	{
 		private static void receive(int port)
@@ -56,6 +62,10 @@ public class Process {
 			try{
 				socket = new DatagramSocket(port);
 				byte[] recData = new byte[1024];
+				// If the process has crashed then stop receiving packets
+				// this would automatically cause the other processes that are 
+				// using heartbeat to detect that the heart beat back didn't show up in 
+				// a timely manner so this process must have crashed.
 				while(!crashed)
 				{			
 					try{
@@ -90,6 +100,11 @@ public class Process {
 		receive(portNumber);
 	}
 	}
+	/*
+	 * This is the PacketExecutor thread that parses and executes instructions based on the
+	 * deserialized object in the received packet.It runs on a new thread for each time
+	 * a packet is received.
+	 */
 	public static class PacketExecutor implements Runnable {
 		InetAddress inetAddress;
 		byte[] data;
@@ -129,7 +144,8 @@ public class Process {
 			    }
 				else if (recObj instanceof HeartBeat)
 				{
-					 
+				    // For received heartbeat respond with heartbeatback because sending process expects this to
+					// not deem this procees as crashed.
 					// System.out.println(" Received heartbeat at " + me + " from " + peer.getHostIndex());
 					 send(new HeartBeatBack(),peer.getHostName(), peer.getPort() );
 				}
@@ -139,6 +155,7 @@ public class Process {
 				}
 				else if (recObj instanceof ReElect)
 				{
+					// Start a new iteration of the leader election algorithm to pick a new leader.
 					System.out.println(new PrintFormat(me, decided, PrintType.CRASHED));
 					try {
 						decidedAltered = true;
@@ -175,14 +192,17 @@ public class Process {
 		}
 		
 	}
-	
-	public static void send(Object proposalOverlay, String hostname, int port) throws SocketException
+	/*
+	 * Send : adds the serialized object to a packet which is then sent out to 
+	 * another process.
+	 */
+	public static void send(Object proposalObject, String hostname, int port) throws SocketException
 	{
 		DatagramSocket socket= new DatagramSocket();
 		try{
 			ByteArrayOutputStream bStream = new ByteArrayOutputStream();
 			ObjectOutput oo = new ObjectOutputStream(bStream); 
-			oo.writeObject(proposalOverlay);
+			oo.writeObject(proposalObject);
 			oo.close();
 			byte[] sendingBytes = bStream.toByteArray();
 			DatagramPacket sendPacket = new DatagramPacket(sendingBytes, sendingBytes.length, InetAddress.getByName(hostname),port);
@@ -197,13 +217,18 @@ public class Process {
 			socket.close();
 		}
 	}
+	/*
+	 * Crux of the tResiliency algorithm
+	 */
 	private static int tResilience(Integer value) throws SocketException, InterruptedException
 	{
+		// Runs the algorithm for maxCrashed +1 rounds
 		for(int k = 0; k <= maxCrashes; k ++)
 		{
 			if(decidedAltered)
 				broadcastMsg(new ClientReply(decided.intValue()));
 			decidedAltered = false;
+			// Wait to receive all values for the current round.
 			Thread.sleep(1000);
 		}		
 		System.out.println(new PrintFormat(me, decided, PrintType.ELECTED));
@@ -239,10 +264,13 @@ public class Process {
 	    public void pulseMonitor(Object heartBeat) throws SocketException, InterruptedException
 	    {
 	    	
-	    	
+	    	// Following code crashes the leader process arbirtrarily.
+	    	// Also assume that a crashed proces doesn't revive and
+	    	// that a new leader election will be started by the first process 
+	    	// to detect that the leader is dead.
 			Random r = new Random();
-			//crash chance 1/60
-			int randInt = r.nextInt(59);
+			//crash chance 1/50
+			int randInt = r.nextInt(40);
 			if ( randInt == 10){
 				for(HostPorts hostPort: peers)
 				{
@@ -255,6 +283,9 @@ public class Process {
 				}
 				
 			}
+			// heart beat procedure. Every three seconds this code is invoked to 
+			// send out a heart beat to all the other processes and if the receiving process
+			// doesn't respond with a heartbeatback within a time frame from [0, 2*RTT]ms then that process is deemed as having crashed.
 	    	for(HostPorts hostPort: peers)
 	    		pulseStatus.put(hostPort.getHostIndex(), Status.UNTRIED);
 	    	for(HostPorts hostPort: peers)
@@ -313,6 +344,8 @@ public class Process {
 		portNumber = parseResults.portNumber;
 		hostFile = parseResults.hostFile;
 		maxCrashes = parseResults.maxCrashes;
+		// if the -k is passed as an argument then this process has been chosen to have crashed.
+		
 		if(!parseResults.kill){
 		peers = new ArrayList<HostPorts>();
 		Path path = Paths.get(System.getProperty("user.dir"));

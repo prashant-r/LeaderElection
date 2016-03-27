@@ -27,6 +27,9 @@ import common.Utility.ParseResults;
 import common.Utility.PrintFormat;
 import common.Utility.PrintType;
 
+
+// Code comments have been only included in step4 folder for corresponding file name
+// The comments are the same as the project builds up on itself at each step.
 public class Process {
 	public static Integer portNumber;
 	public static String hostFile;

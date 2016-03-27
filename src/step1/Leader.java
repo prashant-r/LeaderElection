@@ -10,6 +10,8 @@ import common.Utility;
 import common.Utility.HostPorts;
 import common.Utility.ParseResults;
 
+//Code comments have been only included in step4 folder for corresponding file name
+//The comments are the same as the project builds up on itself at each step.
 public class Leader {
 	public static Integer portNumber;
 	public static String hostFile;
